@@ -28,14 +28,15 @@ public partial class MainWindow : Window
         VersionBadge.Text = $"v{VersionUtil.CurrentAppVersion}";
 
         Loaded += MainWindow_Loaded;
-        SourceInitialized += (_, _) => WindowAppearance.UseLightTitleBar(this);
+        SourceInitialized += (_, _) => WindowAppearance.SetTitleBarTheme(this, ThemeService.IsDark);
         Closed += (_, _) => _cdnClient.Dispose();
+        UpdateThemeToggle();
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Log($"Technik-AG Light Diagnostics v{VersionUtil.CurrentAppVersion} started.");
-        Log("Version checks and downloads are provided by cdn.by-cra.net.");
+        Log("Version checks and downloads are provided by the CDN.");
 
         await RefreshLocalStatusAsync();
         await LoadQlcCatalogsAsync();
@@ -256,7 +257,7 @@ public partial class MainWindow : Window
         Log($"No {resourceName} found on the CDN.");
         MessageBox.Show(
             this,
-            $"No {resourceName} are currently available from cdn.by-cra.net.\n\n" +
+            $"No {resourceName} are currently available from the CDN.\n\n" +
             "The CDN may not have been updated yet. Please try again later.",
             "Nothing available",
             MessageBoxButton.OK,
@@ -299,7 +300,7 @@ public partial class MainWindow : Window
 
         if (userInitiated)
         {
-            SetBusy(true, "Checking for updates on cdn.by-cra.net...");
+            SetBusy(true, "Checking for updates...");
         }
 
         try
@@ -328,7 +329,7 @@ public partial class MainWindow : Window
                 UpdateBannerText.Text =
                     $"Version {update.Version} is available. You are running v{VersionUtil.CurrentAppVersion}.";
                 UpdateBanner.Visibility = Visibility.Visible;
-                Log($"Update {update.Version} is available on cdn.by-cra.net.");
+                Log($"Update {update.Version} is available.");
             }
         }
         catch (Exception exception)
@@ -357,6 +358,22 @@ public partial class MainWindow : Window
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
         await CheckForUpdatesAsync(userInitiated: true);
+    }
+
+    private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        ThemeService.Toggle();
+        WindowAppearance.SetTitleBarTheme(this, ThemeService.IsDark);
+        UpdateThemeToggle();
+        Log(ThemeService.IsDark ? "Switched to the dark theme." : "Switched to the light theme.");
+    }
+
+    private void UpdateThemeToggle()
+    {
+        ThemeToggleGlyph.Text = ThemeService.IsDark ? "\uE706" : "\uE708";
+        ThemeToggleButton.ToolTip = ThemeService.IsDark
+            ? "Switch to light theme"
+            : "Switch to dark theme";
     }
 
     private async void UpdateNow_Click(object sender, RoutedEventArgs e)
@@ -402,19 +419,19 @@ public partial class MainWindow : Window
 
     private async void QlcRefresh_Click(object sender, RoutedEventArgs e)
     {
-        await RunOperationAsync("Reloading QLC+ versions from cdn.by-cra.net...", async _ =>
+        await RunOperationAsync("Reloading QLC+ versions...", async _ =>
         {
             _qlcCatalog.Clear();
             await LoadQlcCatalogsAsync();
             await RefreshLocalStatusAsync();
-            Log("QLC+ version index reloaded from cdn.by-cra.net.");
+            Log("QLC+ version index reloaded.");
         });
     }
 
     private async Task InstallQlcAsync(QlcArchitecture architecture)
     {
         await RunOperationAsync(
-            $"Loading {architecture.DisplayName} versions from cdn.by-cra.net...",
+            $"Loading {architecture.DisplayName} versions...",
             async progress =>
             {
                 var files = await GetQlcFilesAsync(architecture);
@@ -442,7 +459,7 @@ public partial class MainWindow : Window
                 var dialog = new SelectionDialog(
                     $"Install {architecture.DisplayName}",
                     $"Select a {architecture.DisplayName} version",
-                    $"{architecture.Description} Downloads are served by cdn.by-cra.net.",
+                    $"{architecture.Description} The official installer runs silently.",
                     options,
                     multiSelect: false,
                     confirmText: "Install selected version")
@@ -475,36 +492,40 @@ public partial class MainWindow : Window
                 }
 
                 Log($"Downloaded {architecture.DisplayName} {file.Version} to {destination}.");
+                SetStatus($"Installing {architecture.DisplayName} {file.Version} silently...");
+                Progress.IsIndeterminate = true;
+                ProgressDetailText.Text =
+                    $"Official installer · silent install into {architecture.InstallDirectory}";
 
-                var runInstaller = MessageBox.Show(
-                    this,
-                    $"{architecture.DisplayName} {file.Version} has been downloaded.\n\n" +
-                    "Do you want to run the installer now?",
-                    "Download complete",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Information);
+                // All three installers are user-level NSIS packages
+                // (RequestExecutionLevel user / asInvoker), so no elevation is needed.
+                var installerProcess = ShellRunner.Start(
+                    destination,
+                    $"/S /D={architecture.InstallDirectory}");
 
-                if (runInstaller == MessageBoxResult.Yes)
+                if (installerProcess is null)
                 {
-                    ShellRunner.Start(destination);
-                    Log($"{architecture.DisplayName} installer started.");
-                    MessageBox.Show(
-                        this,
-                        $"The {architecture.DisplayName} installer has been launched.\n\n" +
-                        "Follow the installation wizard to complete the setup.",
-                        "Installer started",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    throw new InvalidOperationException(
+                        $"The {architecture.DisplayName} installer could not be started.");
                 }
-                else
+
+                var exitCode = await ShellRunner.WaitForExitCodeAsync(installerProcess);
+                if (exitCode is null)
                 {
-                    MessageBox.Show(
-                        this,
-                        $"The installer has been saved to:\n{destination}\n\nYou can run it manually later.",
-                        "Installer saved",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    throw new InvalidOperationException(
+                        $"The {architecture.DisplayName} installer could not be monitored until completion.");
                 }
+
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"The {architecture.DisplayName} installer exited with code {exitCode}. " +
+                        "The installation did not complete.");
+                }
+
+                ShellRunner.TryDelete(destination);
+                Log($"{architecture.DisplayName} {file.Version} installed silently into {architecture.InstallDirectory}.");
+                SetStatus($"{architecture.DisplayName} {file.Version} installed.");
 
                 await RefreshLocalStatusAsync();
             });
@@ -636,7 +657,7 @@ public partial class MainWindow : Window
 
     private async void FixtureInstall_Click(object sender, RoutedEventArgs e)
     {
-        await RunOperationAsync("Loading fixture definitions from cdn.by-cra.net...", async progress =>
+        await RunOperationAsync("Loading fixture definitions...", async progress =>
         {
             var files = await _cdnClient.GetFilesAsync("cra", "qlc-fixtures");
             var groups = files
@@ -821,7 +842,7 @@ public partial class MainWindow : Window
 
     private async void DriverInstall_Click(object sender, RoutedEventArgs e)
     {
-        await RunOperationAsync("Loading DMX drivers from cdn.by-cra.net...", async progress =>
+        await RunOperationAsync("Loading DMX drivers...", async progress =>
         {
             var files = await _cdnClient.GetFilesAsync("technikag-drivers", package: null, platform: "windows");
             var groups = files
@@ -847,7 +868,7 @@ public partial class MainWindow : Window
             var dialog = new SelectionDialog(
                 "Install DMX drivers",
                 "Select a driver package",
-                "Driver installers are downloaded from cdn.by-cra.net and run with administrator rights.",
+                "Driver installers are downloaded and run with administrator rights.",
                 options,
                 multiSelect: false,
                 confirmText: "Install selected driver")

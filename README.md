@@ -46,11 +46,18 @@ The tool treats the three QLC+ variants as separate architectures:
 | --- | --- | --- |
 | **QLC+ 4** | Official QLC+ 4 releases on qlcplus.org | Installs to `C:\QLC+` |
 | **QLC+ 5** | Official QLC+ 5 releases on qlcplus.org | Installs to `C:\QLC+5`, side by side with QLC+ 4 |
-| **QLC++** | TechnikAG QLC++ builds hosted on the CDN | Same installer flow and location as QLC+ 4 |
+| **QLC++** | TechnikAG QLC++ builds hosted on the CDN | Installs to `C:\QLC++` |
 
 Each row shows the installed version, the latest CDN version and whether an
 update is available. The installer opens a version picker for the selected
 architecture and preselects the newest version.
+
+All QLC+ installers are NSIS packages and are run unattended with `/S` into the
+architecture's installation directory (`/D=...`). The official QLC+ NSIS scripts
+use `RequestExecutionLevel user` and the QLC++ installer uses an `asInvoker`
+manifest, so the installers are started without elevation. Download and
+installation progress is reported in the status bar at the bottom left instead
+of separate installer dialogs.
 
 The **Refresh versions** button simply reloads the package index from the CDN.
 It never triggers a CDN refresh itself: the CDN rebuilds its index (re-resolving
@@ -67,6 +74,14 @@ diagnostics tool only reloads the index afterwards and never triggers the run.
 Operators can still refresh the CDN manually at `https://cdn.by-cra.net/update-packages`,
 but the app itself does not use that endpoint.
 
+## Appearance
+
+The UI follows the CRA administrative design language: flat bordered surfaces,
+square controls, the light `#F4F4F4` palette and an optional dark theme with the
+same tokens as `main-style.css`. The app starts with the Windows app theme
+(`AppsUseLightTheme`) and the top-right theme toggle switches between the light
+and dark palettes for all windows.
+
 ## In-app updater
 
 On startup the app asks the CDN for the newest
@@ -74,7 +89,7 @@ On startup the app asks the CDN for the newest
 with its own assembly version. A banner appears when a newer version is
 available. The update is downloaded to the temp folder, then a small PowerShell
 helper waits for the running app to exit, replaces the executable and restarts
-it. "Check for updates" in the header runs the same check manually.
+it. The refresh icon in the header runs the same check manually.
 
 ## Build
 
@@ -137,7 +152,9 @@ cached files are available. To refresh already-cached files, call
 TechnikAG_Light_Diagnostics/
   App.xaml                        WPF application
   MainWindow.xaml                 Main dashboard
-  Themes/Styles.xaml              Light WPF theme matching the CRA desktop style
+  Themes/Styles.xaml              Shared flat WPF styles
+  Themes/LightTheme.xaml          Light palette from main-style.css
+  Themes/DarkTheme.xaml           Dark palette from main-style.css
   Dialogs/SelectionDialog.xaml    Version / package picker
   Models/                         Data records
   Services/
@@ -148,6 +165,7 @@ TechnikAG_Light_Diagnostics/
     FixtureStore.cs               Local fixture installation storage
     FtdiDriverScanner.cs          Local FTDI driver detection
     ShellRunner.cs                Process launching helpers
+    ThemeService.cs               System-theme detection and switching
     VersionUtil.cs                Version comparison
   Resources/                      Icons and application icon
 ```

@@ -120,7 +120,7 @@ public sealed class CdnClient : IDisposable
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException(
-                $"cdn.by-cra.net could not provide {file.FileName} " +
+                $"The CDN could not provide {file.FileName} " +
                 $"(HTTP {(int)response.StatusCode}). The file may not be available on the CDN yet. " +
                 "Try again once the CDN has refreshed its packages.");
         }

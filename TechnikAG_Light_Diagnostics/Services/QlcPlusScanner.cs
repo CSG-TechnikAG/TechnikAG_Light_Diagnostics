@@ -40,6 +40,7 @@ public static class QlcPlusScanner
         AddCandidate(Path.Combine(programFiles, "QLC+"));
         AddCandidate(Path.Combine(programFilesX86, "QLC+"));
         AddCandidate(Path.Combine(localAppData, "QLC+"));
+        AddCandidate(@"C:\QLC++");
         AddCandidate(@"C:\QLC+");
         AddCandidate(@"C:\QLC");
         AddCandidate(@"C:\qlcplus");
@@ -231,6 +232,11 @@ public static class QlcPlusScanner
     {
         var executableName = Path.GetFileName(executablePath);
 
+        if (installPath.Contains("QLC++", StringComparison.OrdinalIgnoreCase))
+        {
+            return QlcArchitectures.QlcPlusPlus.Id;
+        }
+
         if (installPath.Contains("QLC+5", StringComparison.OrdinalIgnoreCase) ||
             executableName.StartsWith("qlcplus5", StringComparison.OrdinalIgnoreCase) ||
             executableName.Contains("qlcplus-qml", StringComparison.OrdinalIgnoreCase) ||
@@ -240,8 +246,8 @@ public static class QlcPlusScanner
         }
 
         // The TechnikAG QLC++ builds continue the 4.x line from 4.15 onwards and
-        // deliberately use the same installation directory and installer flow as
-        // QLC+ 4. Official QLC+ 4 releases stop before that.
+        // install to C:\QLC++. Older QLC++ installations in C:\QLC+ are still
+        // recognised by their 4.15+ version number.
         if (IsVersionAtLeast(version, "4.15"))
         {
             return QlcArchitectures.QlcPlusPlus.Id;

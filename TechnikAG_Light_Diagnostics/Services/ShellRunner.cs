@@ -75,6 +75,32 @@ public static class ShellRunner
         return Process.Start(startInfo);
     }
 
+    public static async Task<int?> WaitForExitCodeAsync(Process process, int timeoutMilliseconds = -1)
+    {
+        try
+        {
+            if (timeoutMilliseconds < 0)
+            {
+                await process.WaitForExitAsync();
+            }
+            else
+            {
+                using var cancellationTokenSource = new CancellationTokenSource(timeoutMilliseconds);
+                await process.WaitForExitAsync(cancellationTokenSource.Token);
+            }
+
+            return process.ExitCode;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static async Task WaitForExitAsync(Process process, int timeoutMilliseconds = -1)
     {
         try

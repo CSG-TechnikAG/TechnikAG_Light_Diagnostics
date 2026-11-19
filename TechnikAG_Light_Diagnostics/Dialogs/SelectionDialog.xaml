@@ -11,7 +11,7 @@
         ShowInTaskbar="False"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        Background="{StaticResource AppBackgroundBrush}">
+        Background="{DynamicResource AppBackgroundBrush}">
     <Grid Margin="22">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -29,14 +29,14 @@
         <TextBlock x:Name="SubText"
                    Grid.Row="1"
                    Margin="0,6,0,0"
-                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
                    FontSize="13"
                    TextWrapping="Wrap" />
 
         <Border Grid.Row="2"
                 Margin="0,16"
-                Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderStrongBrush}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
                 BorderThickness="1">
             <ListBox x:Name="ItemsList"
                      Margin="6"
@@ -52,7 +52,7 @@
                                        TextWrapping="Wrap" />
                             <TextBlock Text="{Binding Subtitle}"
                                        Margin="0,3,0,0"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="11.5"
                                        TextWrapping="Wrap" />
                         </StackPanel>
@@ -64,7 +64,7 @@
         <TextBlock x:Name="NoteText"
                    Grid.Row="3"
                    Margin="0,0,0,12"
-                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
                    FontSize="10.5"
                    TextWrapping="Wrap"
                    Visibility="Collapsed" />

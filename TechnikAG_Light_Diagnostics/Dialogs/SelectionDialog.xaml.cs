@@ -50,7 +50,7 @@ public partial class SelectionDialog : Window
         ItemsList.MouseDoubleClick += OnItemsDoubleClick;
 
         Loaded += (_, _) => ItemsList.Focus();
-        SourceInitialized += (_, _) => WindowAppearance.UseLightTitleBar(this);
+        SourceInitialized += (_, _) => WindowAppearance.SetTitleBarTheme(this, ThemeService.IsDark);
     }
 
     private void SelectAll_Click(object sender, RoutedEventArgs e) => ItemsList.SelectAll();

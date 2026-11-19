@@ -5,4 +5,5 @@ public sealed record QlcArchitecture(
     string DisplayName,
     string Description,
     string CdnSource,
-    string CdnPackage);
+    string CdnPackage,
+    string InstallDirectory);

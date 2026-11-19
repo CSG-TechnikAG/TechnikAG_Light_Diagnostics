@@ -9,21 +9,24 @@ public static class QlcArchitectures
         DisplayName: "QLC+ 4",
         Description: "Official QLC+ 4 series with the Qt Widgets interface. Installs to C:\\QLC+.",
         CdnSource: "qlcplus",
-        CdnPackage: "v4");
+        CdnPackage: "v4",
+        InstallDirectory: @"C:\QLC+");
 
     public static QlcArchitecture QlcPlus5 { get; } = new(
         Id: "qlcplus5",
         DisplayName: "QLC+ 5",
         Description: "Official QLC+ 5 series with the QML interface. Installs to C:\\QLC+5 alongside QLC+ 4.",
         CdnSource: "qlcplus",
-        CdnPackage: "v5");
+        CdnPackage: "v5",
+        InstallDirectory: @"C:\QLC+5");
 
     public static QlcArchitecture QlcPlusPlus { get; } = new(
         Id: "qlcpp",
         DisplayName: "QLC++",
-        Description: "TechnikAG QLC++ build. It is hosted on the CDN and installs like QLC+ 4 into C:\\QLC+.",
+        Description: "TechnikAG QLC++ build. It is hosted on the CDN and installs into C:\\QLC++.",
         CdnSource: "technikag-apps",
-        CdnPackage: "qlcplus");
+        CdnPackage: "qlcplus",
+        InstallDirectory: @"C:\QLC++");
 
     public static IReadOnlyList<QlcArchitecture> All { get; } = new[]
     {
