@@ -24,13 +24,16 @@ https://cdn.by-cra.net
 | DMX drivers | `technikag-drivers/jmsusb2dmx`, `technikag-drivers/enttecdmxusbpro` |
 | App updates | `technikag-apps/TechnikAG_Light_Diagnostics` |
 
-The list endpoints used by the app are:
+The endpoints used by the app are:
 
 ```text
 https://cdn.by-cra.net/list?category=files&source=...&package=...
 https://cdn.by-cra.net/package/<source>/<package>/<version>/<file>
-https://cdn.by-cra.net/update-packages
 ```
+
+The app never calls `https://cdn.by-cra.net/update-packages`. That refresh runs
+automatically on the CDN (at server start), so the client only reads the
+already-built package index.
 
 The CDN is responsible for mirroring upstream sources. The client only sees
 `cdn.by-cra.net`.
@@ -49,19 +52,20 @@ Each row shows the installed version, the latest CDN version and whether an
 update is available. The installer opens a version picker for the selected
 architecture and preselects the newest version.
 
-The **Refresh versions** button asks the CDN to re-resolve the upstream QLC+
-release tags, probes the available installers and rebuilds the package index
-(the existing `https://cdn.by-cra.net/update-packages` endpoint). That makes
-new QLC+ 4 / QLC+ 5 / QLC++ releases appear in the tool without redeploying the
-CDN.
+The **Refresh versions** button simply reloads the package index from the CDN.
+It never triggers a CDN refresh itself: the CDN rebuilds its index (re-resolving
+upstream QLC+ release tags, probing installers and mirroring new files) on its
+own update run, which executes at server start. The app therefore only reads
+the index that the CDN has already prepared.
 
 The CDN map limits the official QLC+ 4 history to 4.13.0+ and QLC+ 5 to
 5.2.0+ so only recent releases are mirrored. QLC++ has no minimum version.
 
-The CDN mirrors installers during its update run, which executes at server
-start and can be triggered through `https://cdn.by-cra.net/update-packages`.
-Newly discovered QLC+ versions are fetched by that update run; the diagnostics
-tool reloads the index immediately after triggering it.
+The CDN mirrors installers during its own update run, which executes at server
+start. Newly discovered QLC+ versions are fetched by that update run; the
+diagnostics tool only reloads the index afterwards and never triggers the run.
+Operators can still refresh the CDN manually at `https://cdn.by-cra.net/update-packages`,
+but the app itself does not use that endpoint.
 
 ## In-app updater
 
@@ -108,7 +112,9 @@ tags (`v*`), on pull requests and on manual dispatch.
   next refresh and mirrors `TechnikAG_Light_Diagnostics.exe` into
   `technikag-apps/TechnikAG_Light_Diagnostics`.
 
-No version number is edited by hand in the project file.
+The CI build overrides the version, assembly version, file version and
+informational version; the values in the project file are only the default for
+local builds.
 
 ## CDN configuration
 
@@ -131,7 +137,7 @@ cached files are available. To refresh already-cached files, call
 TechnikAG_Light_Diagnostics/
   App.xaml                        WPF application
   MainWindow.xaml                 Main dashboard
-  Themes/Styles.xaml              Dark WPF theme
+  Themes/Styles.xaml              Light WPF theme matching the CRA desktop style
   Dialogs/SelectionDialog.xaml    Version / package picker
   Models/                         Data records
   Services/

@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ThemeMode>Dark</ThemeMode>
+    <ThemeMode>Light</ThemeMode>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
     <AssemblyName>TechnikAG_Light_Diagnostics</AssemblyName>
@@ -14,10 +14,10 @@
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
-    <InformationalVersion>1.0.0</InformationalVersion>
+    <Version>1.0.2</Version>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
+    <InformationalVersion>1.0.2</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>CodeRebelsAlliance</Authors>
     <Company>CodeRebelsAlliance</Company>

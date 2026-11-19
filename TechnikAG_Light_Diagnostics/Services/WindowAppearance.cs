@@ -16,7 +16,7 @@ public static class WindowAppearance
         ref int attributeValue,
         int attributeSize);
 
-    public static void EnableDarkTitleBar(Window window)
+    public static void UseLightTitleBar(Window window)
     {
         var handle = new WindowInteropHelper(window).Handle;
         if (handle == IntPtr.Zero)
@@ -24,11 +24,11 @@ public static class WindowAppearance
             return;
         }
 
-        var enabled = 1;
+        var disabled = 0;
         var result = DwmSetWindowAttribute(
             handle,
             DwmwaUseImmersiveDarkMode,
-            ref enabled,
+            ref disabled,
             sizeof(int));
 
         if (result != 0)
@@ -36,7 +36,7 @@ public static class WindowAppearance
             DwmSetWindowAttribute(
                 handle,
                 DwmwaUseImmersiveDarkModeLegacy,
-                ref enabled,
+                ref disabled,
                 sizeof(int));
         }
     }

@@ -28,7 +28,7 @@ public partial class MainWindow : Window
         VersionBadge.Text = $"v{VersionUtil.CurrentAppVersion}";
 
         Loaded += MainWindow_Loaded;
-        SourceInitialized += (_, _) => WindowAppearance.EnableDarkTitleBar(this);
+        SourceInitialized += (_, _) => WindowAppearance.UseLightTitleBar(this);
         Closed += (_, _) => _cdnClient.Dispose();
     }
 
@@ -402,13 +402,12 @@ public partial class MainWindow : Window
 
     private async void QlcRefresh_Click(object sender, RoutedEventArgs e)
     {
-        await RunOperationAsync("Refreshing QLC+ versions on cdn.by-cra.net...", async _ =>
+        await RunOperationAsync("Reloading QLC+ versions from cdn.by-cra.net...", async _ =>
         {
-            await _cdnClient.UpdatePackagesAsync();
             _qlcCatalog.Clear();
             await LoadQlcCatalogsAsync();
             await RefreshLocalStatusAsync();
-            Log("QLC+ version index refreshed. New installers are mirrored by the CDN update run.");
+            Log("QLC+ version index reloaded from cdn.by-cra.net.");
         });
     }
 

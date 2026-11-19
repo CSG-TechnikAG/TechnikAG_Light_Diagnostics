@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using TechnikAG_Light_Diagnostics.Models;
@@ -107,29 +106,6 @@ public sealed class CdnClient : IDisposable
         return result;
     }
 
-    public async Task UpdatePackagesAsync(
-        bool force = false,
-        CancellationToken cancellationToken = default)
-    {
-        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutSource.CancelAfter(TimeSpan.FromSeconds(90));
-
-        using var response = await _httpClient
-            .GetAsync(
-                $"{BaseUrl}/update-packages?force={(force ? "1" : "0")}&_={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
-                HttpCompletionOption.ResponseHeadersRead,
-                timeoutSource.Token)
-            .ConfigureAwait(false);
-
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            throw new InvalidOperationException(
-                "The CDN does not provide the package update endpoint.");
-        }
-
-        response.EnsureSuccessStatusCode();
-    }
-
     public async Task DownloadAsync(
         CdnFile file,
         string destinationPath,
@@ -146,7 +122,7 @@ public sealed class CdnClient : IDisposable
             throw new InvalidOperationException(
                 $"cdn.by-cra.net could not provide {file.FileName} " +
                 $"(HTTP {(int)response.StatusCode}). The file may not be available on the CDN yet. " +
-                "Use \"Refresh versions\" and try again.");
+                "Try again once the CDN has refreshed its packages.");
         }
 
         var totalBytes = response.Content.Headers.ContentLength;
