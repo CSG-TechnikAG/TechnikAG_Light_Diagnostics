@@ -1,0 +1,111 @@
+name: Build
+
+on:
+  push:
+    branches: [master, main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional version override (for example 1.2.3)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          } elseif (-not [string]::IsNullOrWhiteSpace($env:INPUT_VERSION)) {
+            $version = $env:INPUT_VERSION.Trim()
+          } else {
+            $version = "1.0.${{ github.run_number }}"
+          }
+
+          $core = ($version -split '\+')[0] -split '-' | Select-Object -First 1
+          $parts = @($core -split '\.' | ForEach-Object {
+            if ($_ -match '^\d+$') { [int]$_ } else { 0 }
+          })
+          while ($parts.Count -lt 3) { $parts += 0 }
+          $numeric = "$($parts[0]).$($parts[1]).$($parts[2])"
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "numeric=$numeric" >> $env:GITHUB_OUTPUT
+          "assembly=$numeric.0" >> $env:GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore TechnikAG_Light_Diagnostics/TechnikAG_Light_Diagnostics.csproj -r win-x64
+
+      - name: Build
+        run: >
+          dotnet build TechnikAG_Light_Diagnostics/TechnikAG_Light_Diagnostics.csproj
+          -c Release -r win-x64 --no-restore
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:AssemblyVersion=${{ steps.version.outputs.assembly }}
+          -p:FileVersion=${{ steps.version.outputs.numeric }}
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+
+      - name: Publish single-file executable
+        run: >
+          dotnet publish TechnikAG_Light_Diagnostics/TechnikAG_Light_Diagnostics.csproj
+          -c Release -r win-x64 --self-contained true --no-restore
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:AssemblyVersion=${{ steps.version.outputs.assembly }}
+          -p:FileVersion=${{ steps.version.outputs.numeric }}
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+          -o publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TechnikAG_Light_Diagnostics-v${{ steps.version.outputs.version }}
+          path: publish/TechnikAG_Light_Diagnostics.exe
+          if-no-files-found: error
+
+      - name: Create or update GitHub release
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v${{ steps.version.outputs.version }}"
+          $asset = "publish/TechnikAG_Light_Diagnostics.exe"
+          $notes = "Automated release of Technik-AG Light Diagnostics. Version: ${{ steps.version.outputs.version }}. Commit: ${{ github.sha }}."
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $asset --clobber
+          } elseif ("${{ github.ref_type }}" -eq "tag") {
+            gh release create $tag $asset --title "Technik-AG Light Diagnostics v${{ steps.version.outputs.version }}" --notes $notes --verify-tag
+          } else {
+            gh release create $tag $asset --title "Technik-AG Light Diagnostics v${{ steps.version.outputs.version }}" --notes $notes --target "${{ github.sha }}"
+          }
